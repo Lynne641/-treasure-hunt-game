@@ -6,8 +6,8 @@
     <title>寻宝大冒险</title>
     <style>
         body {
-            font-family: 'Georgia', 'Times New Roman', serif; /* 改为复古字体 */
-            background: linear-gradient(135deg, #8B4513 0%, #CD853F 100%); /* 寻宝主题色 */
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: linear-gradient(135deg, #8B4513 0%, #CD853F 100%);
             margin: 0;
             padding: 20px;
             min-height: 100vh;
@@ -18,7 +18,6 @@
                 radial-gradient(circle at 80% 70%, rgba(210, 105, 30, 0.2) 0%, transparent 20%);
         }
         
-        /* 添加装饰图标 */
         body::before {
             content: "🗺️";
             position: absolute;
@@ -40,19 +39,30 @@
         .container {
             max-width: 800px;
             margin: 0 auto;
-            background: rgba(255, 255, 255, 0.85); /* 改为半透明白底 */
+            background: rgba(255, 255, 255, 0.85);
             border-radius: 20px;
             padding: 30px;
-            border: 3px solid #8B4513; /* 添加边框 */
+            border: 3px solid #8B4513;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-            color: #2C1810; /* 文字改为深棕色 */
+            color: #2C1810;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .container::before {
+            content: "⚔️";
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 1.5em;
+            opacity: 0.1;
         }
         
         h1 {
             text-align: center;
             font-size: 2.5em;
             margin-bottom: 30px;
-            color: #8B4513; /* 标题改为棕色 */
+            color: #8B4513;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
         }
         
@@ -75,7 +85,7 @@
         
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #8B4513, #CD853F); /* 改为寻宝主题色 */
+            background: linear-gradient(90deg, #8B4513, #CD853F);
             width: 0%;
             transition: width 0.5s ease;
         }
@@ -88,6 +98,7 @@
             overflow-y: auto;
             font-family: 'Courier New', monospace;
             border: 1px solid #8B4513;
+            position: relative;
         }
         
         .log-entry {
@@ -116,7 +127,7 @@
             margin: 20px auto;
             padding: 15px 30px;
             font-size: 1.2em;
-            background: linear-gradient(45deg, #8B4513, #CD853F); /* 改为寻宝主题色 */
+            background: linear-gradient(45deg, #8B4513, #CD853F);
             border: none;
             border-radius: 25px;
             color: white;
@@ -141,22 +152,65 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        
         .treasure-animation {
-            animation: pulse 1s infinite;
             font-size: 3em;
             text-align: center;
             margin: 20px 0;
+            transition: all 0.5s ease;
+        }
+        
+        /* 新增创意元素 */
+        .weather-display {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 1.2em;
+            color: #8B4513;
+        }
+        
+        .adventure-stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 15px 0;
+            font-size: 0.9em;
+            color: #8B4513;
+        }
+        
+        .random-fact {
+            text-align: center;
+            font-style: italic;
+            margin: 10px 0;
+            color: #2C1810;
+            font-size: 0.9em;
+            opacity: 0.7;
+        }
+        
+        .treasure-map {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2em;
+            opacity: 0;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🗺️ 寻宝大冒险</h1>
+        
+        <!-- 天气显示 -->
+        <div class="weather-display" id="weatherDisplay">🌤️ 晴朗的天气</div>
+        
+        <!-- 冒险统计 -->
+        <div class="adventure-stats">
+            <span>🗺️ 步数: <span id="stepCount">0</span></span>
+            <span>⏰ 时间: <span id="timeDisplay">00:00</span></span>
+            <span>⭐ 勇气: <span id="courage">100</span></span>
+        </div>
+        
+        <!-- 随机趣闻 -->
+        <div class="random-fact" id="randomFact">点击开始按钮开始冒险！</div>
         
         <div class="progress-container">
             <h3>寻宝进度</h3>
@@ -176,10 +230,43 @@
     </div>
 
     <script>
+        // 冒险统计变量
+        let stepCount = 0;
+        let startTime = 0;
+        let courage = 100;
+        let gameTimer = null;
+
+        // 随机趣闻库
+        const randomFacts = [
+            "你知道吗？古代宝藏通常被藏在最危险的地方！",
+            "传说中，只有勇敢的人才能找到真正的宝藏。",
+            "古老的寻宝地图上通常有神秘的符号标记。",
+            "据说宝藏周围会有奇怪的动物守护。",
+            "寻宝者常说：'最危险的地方就是最安全的地方。'",
+            "古代文明相信宝藏会保护真正的寻宝者。",
+            "寻宝需要智慧、勇气和一点点运气！",
+            "据说宝藏会发光，指引勇敢的寻宝者。",
+            "古代宝藏通常有三道关卡才能到达。",
+            "真正的宝藏不在于金币，而在于寻宝的过程。"
+        ];
+
+        // 天气变化
+        const weathers = [
+            "🌤️ 晴朗的天气",
+            "⛅ 多云的天气", 
+            "🌦️ 小雨的天气",
+            "⛈️ 雷雨的天气",
+            "🌪️ 风暴的天气",
+            "☀️ 炎热的天气",
+            "🌙 月黑风高的夜晚"
+        ];
+
         class TreasureMap {
             static getInitialClue() {
                 return new Promise((resolve) => {
                     setTimeout(() => {
+                        updateRandomFact();
+                        updateWeather();
                         resolve("🗺️ 在古老的图书馆里找到了第一个线索...");
                     }, 1000);
                 });
@@ -191,6 +278,8 @@
                         if (!clue) {
                             reject("❌ 没有线索可以解码!");
                         }
+                        updateRandomFact();
+                        updateStep();
                         resolve("📜 解码成功!宝藏在一座古老的神庙中...");
                     }, 1500);
                 });
@@ -201,8 +290,12 @@
                     setTimeout(() => {
                         const random = Math.random();
                         if (random < 0.3) {
-                            reject("🕷️ 糟糕!遇到了毒蜘蛛!");
+                            courage = Math.max(0, courage - 20);
+                            updateCourage();
+                            reject("🕷️ 糟糕!遇到了毒蜘蛛!勇气-20");
                         }
+                        updateRandomFact();
+                        updateStep();
                         resolve("🌲 成功穿越了神秘森林，到达了神庙入口...");
                     }, 1200);
                 });
@@ -213,8 +306,12 @@
                     setTimeout(() => {
                         const random = Math.random();
                         if (random < 0.4) {
-                            reject("🧩 谜题太难，解不开!");
+                            courage = Math.max(0, courage - 15);
+                            updateCourage();
+                            reject("🧩 谜题太难，解不开!勇气-15");
                         }
+                        updateRandomFact();
+                        updateStep();
                         resolve("🧠 聪明的解开了古老的谜题...");
                     }, 1800);
                 });
@@ -225,8 +322,12 @@
                     setTimeout(() => {
                         const random = Math.random();
                         if (random < 0.5) {
-                            reject("⚔️ 糟糕!遇到了神庙守卫!");
+                            courage = Math.max(0, courage - 25);
+                            updateCourage();
+                            reject("⚔️ 糟糕!遇到了神庙守卫!勇气-25");
                         }
+                        updateRandomFact();
+                        updateStep();
                         resolve("🗝️ 找到了一个神秘的箱子...");
                     }, 2000);
                 });
@@ -235,6 +336,8 @@
             static openTreasureBox() {
                 return new Promise((resolve) => {
                     setTimeout(() => {
+                        updateRandomFact();
+                        updateStep();
                         resolve("💰 恭喜!你找到了传说中的宝藏!");
                     }, 1000);
                 });
@@ -243,7 +346,11 @@
             static receiveBlessing() {
                 return new Promise((resolve) => {
                     setTimeout(() => {
-                        resolve("✨ 宝藏散发出神秘光芒，你获得了永久的祝福!");
+                        courage = Math.min(100, courage + 50); // 获得祝福，勇气+50
+                        updateCourage();
+                        updateRandomFact();
+                        updateStep();
+                        resolve("✨ 宝藏散发出神秘光芒，你获得了永久的祝福!勇气+50");
                     }, 1000);
                 });
             }
@@ -268,49 +375,105 @@
             progressText.textContent = text;
         }
 
+        // 更新冒险统计
+        function updateStep() {
+            stepCount++;
+            document.getElementById('stepCount').textContent = stepCount;
+        }
+
+        function updateCourage() {
+            document.getElementById('courage').textContent = courage;
+            // 如果勇气归零，游戏失败
+            if (courage <= 0) {
+                addLog("💀 勇气耗尽，冒险失败！", 'error');
+                updateProgress(0, '勇气耗尽');
+                treasureIcon.textContent = '💀';
+                startBtn.disabled = false;
+            }
+        }
+
+        function updateRandomFact() {
+            const fact = randomFacts[Math.floor(Math.random() * randomFacts.length)];
+            document.getElementById('randomFact').textContent = fact;
+        }
+
+        function updateWeather() {
+            const weather = weathers[Math.floor(Math.random() * weathers.length)];
+            document.getElementById('weatherDisplay').textContent = weather;
+        }
+
+        function updateTime() {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+            const seconds = (elapsed % 60).toString().padStart(2, '0');
+            document.getElementById('timeDisplay').textContent = `${minutes}:${seconds}`;
+        }
+
         async function startTreasureHunt() {
+            // 重置游戏状态
+            stepCount = 0;
+            courage = 100;
+            startTime = Date.now();
+            
+            // 清空计时器
+            if (gameTimer) clearInterval(gameTimer);
+            
+            // 开始时间更新
+            gameTimer = setInterval(updateTime, 1000);
+            
             startBtn.disabled = true;
+            document.getElementById('stepCount').textContent = '0';
+            document.getElementById('courage').textContent = '100';
+            document.getElementById('timeDisplay').textContent = '00:00';
+            
             addLog("🎯 开始寻宝之旅!", 'success');
             updateProgress(0, '准备出发...');
             treasureIcon.textContent = '🧭';
 
             try {
+                // 步骤1
                 updateProgress(10, '正在前往图书馆...');
                 treasureIcon.textContent = '📚';
                 const clue = await TreasureMap.getInitialClue();
                 addLog(clue, 'success');
                 updateProgress(20, '获得初始线索');
 
+                // 步骤2
                 updateProgress(25, '解码古代文字...');
                 treasureIcon.textContent = '📜';
                 const decoded = await TreasureMap.decodeAncientScript(clue);
                 addLog(decoded, 'success');
                 updateProgress(40, '成功解码');
 
+                // 步骤3
                 updateProgress(45, '穿越神秘森林...');
                 treasureIcon.textContent = '🌲';
                 const forestResult = await TreasureMap.navigateForest(decoded);
                 addLog(forestResult, 'success');
                 updateProgress(60, '穿越森林成功');
 
+                // 步骤4
                 updateProgress(65, '解开古老谜题...');
                 treasureIcon.textContent = '🧩';
                 const riddleResult = await TreasureMap.solveRiddle(forestResult);
                 addLog(riddleResult, 'success');
                 updateProgress(80, '谜题已解开');
 
+                // 步骤5
                 updateProgress(85, '搜索神庙...');
                 treasureIcon.textContent = '🏛️';
                 const box = await TreasureMap.searchTemple(riddleResult);
                 addLog(box, 'success');
                 updateProgress(90, '找到神秘箱子');
 
+                // 步骤6
                 updateProgress(95, '打开宝箱...');
                 treasureIcon.textContent = '🗝️';
                 const treasure = await TreasureMap.openTreasureBox();
                 addLog(treasure, 'success');
                 updateProgress(98, '宝藏即将到手');
 
+                // 步骤7
                 const blessing = await TreasureMap.receiveBlessing();
                 addLog(blessing, 'success');
                 updateProgress(100, '寻宝完成！获得祝福！');
@@ -324,8 +487,14 @@
                 treasureIcon.textContent = '💀';
             } finally {
                 startBtn.disabled = false;
+                if (gameTimer) clearInterval(gameTimer);
             }
         }
+
+        // 页面加载时显示初始随机趣闻
+        window.onload = function() {
+            updateRandomFact();
+        };
     </script>
 </body>
 </html>
